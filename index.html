@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>오늘 날씨 한마디</title>
+<style>
+  :root { color-scheme: light dark; --bg:#f4f6fb; --card:#fff; --fg:#1d2433; --sub:#6b7385; --acc:#2f6bff; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#12151c; --card:#1c212b; --fg:#e8ebf2; --sub:#9aa3b5; --acc:#5b8cff; } }
+  * { box-sizing: border-box; }
+  body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+         background:var(--bg); color:var(--fg); font-family:-apple-system,"Apple SD Gothic Neo","Pretendard","Malgun Gothic",sans-serif; }
+  .card { width:min(92vw,420px); background:var(--card); border-radius:20px; padding:24px; box-shadow:0 8px 30px rgba(0,0,0,.08); }
+  .label { font-size:13px; color:var(--sub); margin-bottom:10px; }
+  .msg { font-size:19px; line-height:1.55; white-space:pre-wrap; word-break:keep-all; padding:16px; border-radius:14px;
+         background:rgba(127,140,170,.12); outline:none; }
+  .btns { display:flex; gap:10px; margin-top:18px; }
+  button { flex:1; border:0; border-radius:14px; padding:15px 0; font-size:16px; font-weight:600; cursor:pointer; }
+  #copy { background:var(--acc); color:#fff; }
+  #share { background:rgba(127,140,170,.18); color:var(--fg); }
+  .toast { text-align:center; margin-top:14px; font-size:14px; color:var(--acc); min-height:20px; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="label">보낼 말 (눌러서 고쳐도 돼요)</div>
+  <div class="msg" id="msg" contenteditable="true"></div>
+  <div class="btns">
+    <button id="copy">복사하기</button>
+    <button id="share">카톡으로 보내기</button>
+  </div>
+  <div class="toast" id="toast"></div>
+</div>
+<script>
+  const el = document.getElementById('msg');
+  const toast = document.getElementById('toast');
+  let text = '';
+  try { text = decodeURIComponent(location.hash.slice(1)); } catch (e) { text = ''; }
+  el.textContent = text || '오늘 날씨 괜찮대. 좋은 하루 보내!';
+  const cur = () => el.innerText.trim();
+  function say(t) { toast.textContent = t; setTimeout(() => toast.textContent = '', 2500); }
+  async function copy() {
+    try { await navigator.clipboard.writeText(cur()); say('복사했어요. 카톡에 붙여넣기 하세요'); return true; }
+    catch (e) {
+      const ta = document.createElement('textarea'); ta.value = cur(); document.body.appendChild(ta);
+      ta.select(); const ok = document.execCommand('copy'); ta.remove();
+      say(ok ? '복사했어요. 카톡에 붙여넣기 하세요' : '길게 눌러서 복사해 주세요'); return ok;
+    }
+  }
+  document.getElementById('copy').onclick = copy;
+  const sh = document.getElementById('share');
+  if (navigator.share) {
+    sh.onclick = async () => { try { await navigator.share({ text: cur() }); } catch (e) {} };
+  } else {
+    sh.textContent = '복사 후 카톡 열기';
+    sh.onclick = async () => { await copy(); location.href = 'kakaotalk://launch'; };
+  }
+</script>
+</body>
+</html>
