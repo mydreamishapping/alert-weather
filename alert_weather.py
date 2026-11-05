@@ -66,6 +66,11 @@ def get_json(url, tries=3):
             time.sleep(5 * (i + 1))
 
 
+def r0(x):
+    """반올림 정수 (-0 방지)"""
+    return int(round(x)) + 0
+
+
 def hour_ranges(hours):
     """[7,8,9,15,16] -> '07~09시, 15~16시'"""
     if not hours:
@@ -177,18 +182,22 @@ def analyze(conf, target):
     cold = dmin <= COLD_MIN or (fmin is not None and fmin <= FEELS_COLD)
     drop = ymin is not None and (ymin - dmin) >= DROP
     if cold or drop:
-        bits = [f"최저 {dmin:.0f}도 / 최고 {dmax:.0f}도"]
+        bits = [f"최저 {r0(dmin)}도 / 최고 {r0(dmax)}도"]
         if fmin is not None:
-            bits.append(f"체감 최저 {fmin:.0f}도")
+            bits.append(f"체감 최저 {r0(fmin)}도")
         if drop:
-            bits.append(f"어제보다 {ymin - dmin:.0f}도 낮음")
-        items.append(("많이 추워요, 따뜻하게 입으세요", " · ".join(bits)))
-        gf.append(f"오늘 최저 {dmin:.0f}도래" + (", 어제보다 훨씬 추워." if drop else ".") + " 따뜻하게 입고 나가!")
+            bits.append(f"어제보다 {r0(ymin - dmin)}도 낮음")
+        if cold:
+            items.append(("많이 추워요, 따뜻하게 입으세요", " · ".join(bits)))
+            gf.append(f"오늘 최저 {r0(dmin)}도래. 진짜 추우니까 따뜻하게 입고 나가!")
+        else:
+            items.append(("어제보다 확 추워져요, 겉옷 챙기세요", " · ".join(bits)))
+            gf.append(f"오늘 어제보다 {r0(ymin - dmin)}도나 떨어진대. 겉옷 하나 더 챙겨!")
 
     # 폭염
     if dmax >= HOT_MAX:
-        items.append(("폭염이에요, 물 챙기세요", f"최고 {dmax:.0f}도"))
-        gf.append(f"오늘 최고 {dmax:.0f}도래. 너무 더우니까 물 많이 마셔.")
+        items.append(("폭염이에요, 물 챙기세요", f"최고 {r0(dmax)}도"))
+        gf.append(f"오늘 최고 {r0(dmax)}도래. 너무 더우니까 물 많이 마셔.")
 
     # 강풍
     gust = col("wind_gusts_10m")
@@ -198,7 +207,7 @@ def analyze(conf, target):
             items.append(("바람 강해요", f"{gh:02d}시쯤 순간풍속 약 {gv / 3.6:.0f}m/s"))
             gf.append("바람도 엄청 세대. 조심해.")
 
-    summary = f"최저 {dmin:.0f}도 / 최고 {dmax:.0f}도"
+    summary = f"최저 {r0(dmin)}도 / 최고 {r0(dmax)}도"
     return items, gf, summary
 
 
@@ -213,7 +222,10 @@ def build_message(conf, target, items, gf, summary):
     gf_text = (conf.get("GF_PREFIX", "") + " ".join(gf)).strip() or "오늘 날씨 괜찮대. 좋은 하루 보내!"
     share = conf.get("SHARE_URL", "").rstrip("/") + "/#" + urllib.parse.quote(gf_text)
 
-    lines = "\n".join(f"*{h}*\n{d}" for h, d in items) or summary
+    if len(items) == 1:
+        lines = items[0][1]
+    else:
+        lines = "\n".join(f"• *{h}*\n    {d}" for h, d in items) or summary
     blocks = [
         {"type": "header", "text": {"type": "plain_text", "text": f"{datestr} {headline}"[:150]}},
         {"type": "section", "text": {"type": "mrkdwn", "text": lines}},

@@ -22,7 +22,8 @@
 ```sh
 mkdir -p ~/alert-weather ~/.config/weather-alert
 curl -fsSL https://raw.githubusercontent.com/mydreamishapping/alert-weather/main/alert_weather.py -o ~/alert-weather/alert_weather.py
-printf 'LAT=37.5615\nLON=126.8545\nPLACE=강서구 가양동\nSHARE_URL=https://mydreamishapping.github.io/alert-weather/\n' > ~/.config/weather-alert/env
+printf 'LAT=37.5615\nLON=126.8545\nSHARE_URL=https://mydreamishapping.github.io/alert-weather/\n' > ~/.config/weather-alert/env
 # 웹훅 URL은 ~/.config/weather-alert/slack_webhook 에 저장 (chmod 600)
-( crontab -l; echo 'CRON_TZ=Asia/Seoul'; echo '0 7 * * * /usr/bin/python3 $HOME/alert-weather/alert_weather.py >> $HOME/alert-weather/run.log 2>&1' ) | crontab -
+# LXC 시간대가 Asia/Seoul이라는 전제
+( crontab -l; echo '0 7 * * * /usr/bin/python3 $HOME/alert-weather/alert_weather.py >> $HOME/alert-weather/run.log 2>&1' ) | crontab -
 ```
